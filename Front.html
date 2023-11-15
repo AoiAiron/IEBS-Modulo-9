@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaña de Donaciones - DApp</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+            flex-wrap: wrap; 
+        }
+
+        .column {
+            flex: 1;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+        }
+
+        .white-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+            width: 100%;
+        }
+
+        select, input {
+            width: calc(100% - 20px); 
+            padding: 10px;
+            margin-bottom: 15px; 
+        }
+
+        button {
+            padding: 10px;
+            background-color: #3498db; 
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2980b9; 
+        }
+
+        .description-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="description-section">
+        <h1>IEBS - DApp</h1>
+        <p>Crea campañas y realiza donaciones para apoyar diversas causas.</p>
+    </div>
+
+    <div class="container">
+        <!-- Crear campañas -->
+        <div class="column">
+            <h2>Crear Campaña</h2>
+            <label for="cause">Causa:</label>
+            <input type="text" id="cause" placeholder="Ingrese la causa" required><br>
+
+            <label for="causeDescription">Descripción de la Causa:</label>
+            <textarea id="causeDescription" placeholder="Ingrese la descripción de la causa" required></textarea><br>
+
+            <label for="beneficiaryAddress">Dirección del Beneficiario:</label>
+            <input type="text" id="beneficiaryAddress" placeholder="Ingrese la dirección del beneficiario" required><br>
+
+            <label for="campaignDuration">Duración de la Campaña (días):</label>
+            <input type="number" id="campaignDuration" placeholder="Ingrese la duración de la campaña" required><br>
+
+            <button onclick="crearCampaña()">Crear Campaña</button>
+        </div>
+
+        <!-- Realizar donaciones -->
+        <div class="column">
+            <h2>Realizar Donación</h2>
+            <label for="donationAmount">Cantidad de Donación (ETH):</label>
+            <input type="number" id="donationAmount" placeholder="Ingrese la cantidad de donación" required><br>
+
+            <label for="donationComment">Comentario:</label>
+            <input type="text" id="donationComment" placeholder="Ingrese un comentario"><br>
+            <label for="donationCampaignSelector">Seleccionar Campaña para Donación:</label>
+            <select id="donationCampaignSelector"></select><br>
+            <button onclick="realizarDonacion()">Realizar Donación</button>
+
+        </div>
+    </div>
+
+    <!-- Mostrar la descripción de una campaña seleccionada -->
+    <div style="text-align: center; margin-top: 20px;">
+        <h3>Descripción de la Campaña Seleccionada</h3>
+        <p id="selectedCampaignDescription">Selecciona una campaña para ver la descripción.</p>
+    </div>
+
+    <!-- Retiro de fondos -->
+    <div class="white-container" style="text-align: center; margin-top: 20px;">
+        <label for="withdrawCampaignSelector">Seleccionar Campaña para Retiro:</label>
+        <select id="withdrawCampaignSelector"></select><br>
+
+        <button onclick="retirarFondos()">Retirar Fondos</button>
+    </div>
+
+    <script>
+        // Dirección del contrato
+        const contractAddress = "0x047683F920c3b372F692af59738E5f744A2A01F7";
+
+        // ABI del contrato
+        const contractAbi = [[
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_cause",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_causeDescription",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "_beneficiaryAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_campaignDuration",
+				"type": "uint256"
+			}
+		],
+		"name": "crearCampana",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_campaignId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_commentary",
+				"type": "string"
+			}
+		],
+		"name": "donar",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "retiroDeFondos",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "beneficiaryAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "campaignDonations",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "donorAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "commentary",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "donationDate",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "donationAmount",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "campaignDuration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "campaignStartTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "cause",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "causeDescription",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "donacionesDeCampana",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "donorAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "commentary",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "donationDate",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "donationAmount",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct DonationCampaign.Donation[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "informacionDeCampana",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "numDonors",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "totalRaised",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+    ]];
+
+
+
+        // Instancia del contrato
+        let donationContract = new window.web3.eth.Contract(contractAbi, contractAddress);
+        let accounts;
+        let selectedCampaignId;
+
+        // Lógica para conectar con MetaMask
+        async function connectMetaMask() {
+            if (window.ethereum) {
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    accounts = await web3.eth.getAccounts();
+                    const networkId = await web3.eth.net.getId();
+                    const contractData = DonationCampaignContract.networks[networkId];
+                    donationContract = new web3.eth.Contract(DonationCampaignContract.abi, contractData.address);
+                    updateCampaignSelectors();
+                } catch (error) {
+                    console.error(error);
+                }
+            } else {
+                alert("MetaMask no está instalado. Por favor, instale MetaMask para usar esta aplicación.");
+            }
+        }
+
+        // Actualiza los selectores de campañas
+        async function updateCampaignSelectors() {
+            const donationCampaigns = await donationContract.methods.getDonationCampaigns().call();
+            const donationSelector = document.getElementById('donationCampaignSelector');
+            const withdrawSelector = document.getElementById('withdrawCampaignSelector');
+
+            donationSelector.innerHTML = '';
+            withdrawSelector.innerHTML = '';
+
+            donationCampaigns.forEach((campaign, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.text = campaign.cause;
+                donationSelector.add(option);
+
+                const withdrawOption = document.createElement('option');
+                withdrawOption.value = index;
+                withdrawOption.text = campaign.cause;
+                withdrawSelector.add(withdrawOption);
+            });
+        }
+
+        // Crea una campaña
+        async function crearCampaña() {
+            const cause = document.getElementById('cause').value;
+            const causeDescription = document.getElementById('causeDescription').value;
+            const beneficiaryAddress = document.getElementById('beneficiaryAddress').value;
+            const campaignDuration = document.getElementById('campaignDuration').value;
+
+            try {
+                await donationContract.methods.crearCampana(cause, causeDescription, beneficiaryAddress, campaignDuration).send({ from: accounts[0] });
+                updateCampaignSelectors();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Realiza una donación
+        async function realizarDonacion() {
+            const donationAmount = document.getElementById('donationAmount').value;
+            const donationComment = document.getElementById('donationComment').value;
+
+            try {
+                await donationContract.methods.donar(selectedCampaignId, donationComment).send({ from: accounts[0], value: donationAmount });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Retira fondos de una campaña
+        async function retirarFondos() {
+            try {
+                await donationContract.methods.retiroDeFondos(selectedCampaignId).send({ from: accounts[0] });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
